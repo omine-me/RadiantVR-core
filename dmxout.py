@@ -6,7 +6,7 @@ async def main():
     node = ArtNetNode('127.0.0.1', 6454)
 
     # Create universe 0
-    universe = node.add_universe(0)
+    universe = node.add_universe(1)
 
     # Add a channel to the universe which consists of 3 values
     # Default size of a value is 8Bit (0..255) so this would fill

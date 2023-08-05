@@ -3,17 +3,26 @@ from pyartnet import ArtNetNode
 from config import config
 from random import randint
 
-def check_watt(config, intensities):
+def adjust_watt(config, intensities):
     watt_sum = 0
     for light, intensity in zip(config["light"], intensities):
         watt_sum += light["watt"] * intensity
     
     if watt_sum <= config["max_watt"]:
-        return True
+        return intensities
     else:
-        return False
+        intensities = intensities*(config["max_watt"]/watt_sum)
 
-async def main():
+        ### DEBUG ###
+        watt_sum = 0
+        for light, intensity in zip(config["light"], intensities):
+            watt_sum += light["watt"] * intensity
+        assert watt_sum <= config["max_watt"]
+        #############
+
+        return intensities
+
+async def out(intensities):
     # Run this code in your async function
     node = ArtNetNode('127.0.0.1', 6454)
 
@@ -23,14 +32,16 @@ async def main():
     # Add a channel to the universe which consists of 3 values
     # Default size of a value is 8Bit (0..255) so this would fill
     # the DMX values 1..3 of the universe
-    channel = universe.add_channel(start=1, width=3)
+    channel = universe.add_channel(start=1, width=len(config["lights"]))
 
-    # Fade channel to 255,0,0 in 5s
-    # The fade will automatically run in the background
-    channel.set_fade([randint(0,255),randint(0,255),randint(0,255)], 100)
+    # adjust intensities not to exceed max_watt
+    intensities = adjust_watt(config, intensities)
+
+    channel.set_fade(intensities, 100)
     # channel.set_values([randint(0,255),randint(0,255),randint(0,255)])
 
     # this can be used to wait till the fade is complete
     await channel
-for _ in range(50):
-    asyncio.run(main())
+
+# for _ in range(50):
+#     asyncio.run(out())

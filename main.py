@@ -1,10 +1,11 @@
 import argparse
-import math
+# import math
 import asyncio
 
 from pythonosc.dispatcher import Dispatcher
 from pythonosc import osc_server
 from dmxout import out
+from compute_intensity import compute_intensity
 
 def print_volume_handler(unused_addr, args, volume):
     print("[{0}] ~ {1}".format(args[0], volume))
@@ -14,8 +15,40 @@ def print_compute_handler(unused_addr, args, volume):
         print("[{0}] ~ {1}".format(args[0], args[1](volume)))
     except ValueError: pass
 
-def outputDMX(unused_addr, args, values):
-    asyncio.run(out(values))
+_interval = 0
+player_loc = [0, 0, 0]
+heat_sources = {}
+
+def update_values(key, v1, v2=None, v3=None):
+    # print(key, v1,v2,v3)
+    global _interval, player_loc, heat_sources
+
+    ### debug ###
+    if _interval < 10:
+        _interval += 1
+        return 
+    else:
+        _interval = 0
+    ###       ###
+
+
+    if key == "/player":
+        assert v3 is not None
+        player_loc = [v1, v2, v3]
+    elif key.startswith("/heatsource"):
+        _, _, idx, attr = key.split("/")
+        idx = int(idx)
+        try:
+            heat_sources[idx] = {**heat_sources[idx], attr: ((v1-player_loc[0], v2-player_loc[1], v3-player_loc[2]) if v3 is not None else v1)}
+        except KeyError:
+            heat_sources[idx] = {attr: ((v1-player_loc[0], v2-player_loc[1], v3-player_loc[2]) if v3 is not None else v1)}
+        # TODO
+        # delete heat source when their num decreases
+    else:
+        ValueError(f"{key} is not defined.")
+
+    intensities = compute_intensity(heat_sources)
+    asyncio.run(out(intensities))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -26,13 +59,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     dispatcher = Dispatcher()
-    dispatcher.map("/toTD", print)
+    # dispatcher.map("/*", print)
     #   dispatcher.map("/volume", print_volume_handler, "Volume")
     #   dispatcher.map("/logvolume", print_compute_handler, "Log volume", math.log)
+    dispatcher.map("/*", update_values)
 
     server = osc_server.ThreadingOSCUDPServer(
         (args.ip, args.port), dispatcher)
     print("Serving on {}".format(server.server_address))
     server.serve_forever()
-
-

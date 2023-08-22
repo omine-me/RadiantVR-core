@@ -1,5 +1,5 @@
 import argparse
-# import math
+import math
 import asyncio
 
 from pythonosc.dispatcher import Dispatcher
@@ -17,7 +17,12 @@ def print_compute_handler(unused_addr, args, volume):
 
 _interval = 0
 player_loc = [0, 0, 0]
+player_locY = 0
 heat_sources = {}
+
+def rotation_2d(x, y, theta):
+    return x*math.cos(theta)-y*math.sin(theta), x*math.sin(theta)+math.cos(theta)
+
 
 def update_values(key, v1, v2=None, v3=None):
     # print(key, v1,v2,v3)
@@ -32,16 +37,22 @@ def update_values(key, v1, v2=None, v3=None):
     ###       ###
 
 
-    if key == "/player":
-        assert v3 is not None
-        player_loc = [v1, v2, v3]
+    if key.startswith("/player"):
+        _, _, transform_elm = key.split("/")
+        if transform_elm == "loc":
+            assert v3 is not None
+            player_loc = [v1, v2, v3]
+        elif transform_elm == "rotY":
+            player_locY = v1
     elif key.startswith("/heatsource"):
         _, _, idx, attr = key.split("/")
         idx = int(idx)
+        if v3 is not None: # when loc
+            v1, v3 = rotation_2d(v1-player_loc[0], v3-player_loc[2], player_locY)
         try:
-            heat_sources[idx] = {**heat_sources[idx], attr: ((v1-player_loc[0], v2-player_loc[1], v3-player_loc[2]) if v3 is not None else v1)}
+            heat_sources[idx] = {**heat_sources[idx], attr: ((v1, v2-player_loc[1], v3) if v3 is not None else v1)}
         except KeyError:
-            heat_sources[idx] = {attr: ((v1-player_loc[0], v2-player_loc[1], v3-player_loc[2]) if v3 is not None else v1)}
+            heat_sources[idx] = {attr: ((v1, v2-player_loc[1], v3) if v3 is not None else v1)}
         # TODO
         # delete heat source when their num decreases
     else:

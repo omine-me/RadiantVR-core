@@ -17,25 +17,28 @@ def print_compute_handler(unused_addr, args, volume):
 
 _interval = 0
 player_loc = [0, 0, 0]
-player_locY = 0
+player_rotY = 0
 heat_sources = {}
 
 def rotation_2d(x, y, theta):
-    return x*math.cos(theta)-y*math.sin(theta), x*math.sin(theta)+math.cos(theta)
+    return x*math.cos(theta)-y*math.sin(theta), x*math.sin(theta)+y*math.cos(theta)
 
+def invert_axis_x(val):
+    return -val
+def invert_rot_y(val):
+    return -val
 
 def update_values(key, v1, v2=None, v3=None):
-    # print(key, v1,v2,v3)
-    global _interval, player_loc, heat_sources
+    global _interval, player_loc, player_rotY, heat_sources
 
     ### debug ###
-    if _interval < 10:
-        _interval += 1
-        return 
-    else:
-        _interval = 0
+    # if _interval < 10:
+    #     _interval += 1
+    #     return 
+    # else:
+    #     _interval = 0
     ###       ###
-
+    # print(key, v1,v2,v3)
 
     if key.startswith("/player"):
         _, _, transform_elm = key.split("/")
@@ -43,13 +46,18 @@ def update_values(key, v1, v2=None, v3=None):
             assert v3 is not None
             player_loc = [v1, v2, v3]
         elif transform_elm == "rotY":
-            player_locY = v1
+            player_rotY = v1
     elif key.startswith("/heatsource"):
         _, _, idx, attr = key.split("/")
         idx = int(idx)
+        
         if v3 is not None: # when loc
-            v1, v3 = rotation_2d(v1-player_loc[0], v3-player_loc[2], player_locY)
+            v1, v3 = rotation_2d(invert_axis_x(v1-player_loc[0]), v3-player_loc[2], invert_rot_y(player_rotY))
+            # v1 = invert_axis_x(v1-player_loc[0])
+            # v3 = v3-player_loc[2]
         try:
+            # if attr == "loc" and idx == 0:
+            #     print(v2, player_loc[1])
             heat_sources[idx] = {**heat_sources[idx], attr: ((v1, v2-player_loc[1], v3) if v3 is not None else v1)}
         except KeyError:
             heat_sources[idx] = {attr: ((v1, v2-player_loc[1], v3) if v3 is not None else v1)}
@@ -58,8 +66,17 @@ def update_values(key, v1, v2=None, v3=None):
     else:
         ValueError(f"{key} is not defined.")
 
-    intensities = compute_intensity(heat_sources)
-    asyncio.run(out(intensities))
+
+    if _interval < 501:
+        _interval += 1
+        return 
+    else:
+        _interval = 0
+        intensities = compute_intensity(heat_sources)
+        asyncio.run(out(intensities))
+
+        # print(heat_sources[0]["intensity"])
+        print(heat_sources[0]["loc"])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

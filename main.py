@@ -40,6 +40,13 @@ def update_values(key, v1, v2=None, v3=None):
     ###       ###
     # print(key, v1,v2,v3)
 
+    if key.startswith("/isLightsOn"):
+        if not v1:
+            for heat_source in heat_sources.values():
+                heat_source["intensity"] = .0
+            intensities = compute_intensity(heat_sources)
+            asyncio.run(out(intensities))
+
     if key.startswith("/player"):
         _, _, transform_elm = key.split("/")
         if transform_elm == "loc":

@@ -1,33 +1,27 @@
-# how to decide which lights to turn on
-# from mathutils import Vector
 import math
 import numpy as np
 from config import config
 
-from dmxout import out
+# adjust intensities not to exceed max_watt
+def adjust_watt(intensities):
+    watt_sum = 0
+    for light, intensity in zip(config["light"], intensities):
+        watt_sum += light["watt"] * intensity
+    
+    if watt_sum <= config["max_watt"]:
+        return intensities
+    else:
+        intensities = intensities*(config["max_watt"]/watt_sum)
 
-x=0; y=0; z=0
-# config = {
-#     "max_watt": 1400,
-#     "lights": {
-#         0: {
-#             "loc": (x, y, 0),
-#             "watt": 120,
-#         },
-#         1: {
-#             "loc": (x, y, 1),
-#             "watt": 120,
-#         },
-#         2: {
-#             "loc": (x, y, 2),
-#             "watt": 120,
-#         },
-#         3: {
-#             "loc": (x, y, 3),
-#             "watt": 120,
-#         },
-#     }
-# }
+        ### DEBUG ###
+        watt_sum = 0
+        for light, intensity in zip(config["light"], intensities):
+            watt_sum += light["watt"] * intensity
+        assert watt_sum <= config["max_watt"]
+        #############
+
+        return intensities
+
 
 def distance(vec1, vec2):
     return math.sqrt((vec1[0]-vec2[0])**2 + (vec1[1]-vec2[1])**2 + (vec1[2]-vec2[2])**2)
@@ -36,18 +30,6 @@ def distance(vec1, vec2):
 def compute_intensity(heat_sources):
     # player is at (0,0,0)
     # each heat source has its location(m), intensity(照度?), radius(m)
-    # heat_sources = {
-    #             0: {
-    #                 "loc": (0,0,5),
-    #                 "intensity": 10,
-    #                 "radius": .3
-    #             },
-    #             1: {
-    #                 "loc": (0,0,5),
-    #                 "intensity": 10,
-    #                 "radius": .3
-    #             },
-    #         }
 
     # each output is corresponds to each light. So len(outputs) == len(num of lights) 
     outputs = []
@@ -70,5 +52,7 @@ def compute_intensity(heat_sources):
         outputs.append(out_intensity)
 
     assert len(config["lights"]) == len(outputs)
-    # print(outputs)
+
+    outputs = adjust_watt(outputs)
+
     return outputs

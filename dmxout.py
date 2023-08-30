@@ -1,27 +1,4 @@
-import asyncio
 from pyartnet import ArtNetNode
-from config import config
-from random import randint
-
-def adjust_watt(config, intensities):
-    watt_sum = 0
-    for light, intensity in zip(config["light"], intensities):
-        watt_sum += light["watt"] * intensity
-    
-    if watt_sum <= config["max_watt"]:
-        return intensities
-    else:
-        intensities = intensities*(config["max_watt"]/watt_sum)
-
-        ### DEBUG ###
-        watt_sum = 0
-        for light, intensity in zip(config["light"], intensities):
-            watt_sum += light["watt"] * intensity
-        assert watt_sum <= config["max_watt"]
-        #############
-
-        return intensities
-
 
 async def out(intensities):
     # Run this code in your async function
@@ -36,10 +13,6 @@ async def out(intensities):
     # the DMX values 1..3 of the universe
     channel = universe.add_channel(start=1, width=26)#len(config["lights"]))
 
-    # adjust intensities not to exceed max_watt
-    # intensities = adjust_watt(config, intensities)
-    
-    # print(intensities)
     channel.set_fade(intensities, 0)
     # channel.set_values(intensities)
     # channel.set_fade([randint(0,255) for _ in range(26)], 50)

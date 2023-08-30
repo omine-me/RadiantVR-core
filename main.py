@@ -1,19 +1,12 @@
 import argparse
 import math
 import asyncio
+from time import time
 
 from pythonosc.dispatcher import Dispatcher
 from pythonosc import osc_server
 from dmxout import out
 from compute_intensity import compute_intensity
-
-def print_volume_handler(unused_addr, args, volume):
-    print("[{0}] ~ {1}".format(args[0], volume))
-
-def print_compute_handler(unused_addr, args, volume):
-    try:
-        print("[{0}] ~ {1}".format(args[0], args[1](volume)))
-    except ValueError: pass
 
 _interval = 0
 player_loc = [0, 0, 0]
@@ -65,11 +58,9 @@ def update_values(key, v1, v2=None, v3=None):
         try:
             # if attr == "loc" and idx == 0:
             #     print(v2, player_loc[1])
-            heat_sources[idx] = {**heat_sources[idx], attr: ((v1, v2-player_loc[1], v3) if v3 is not None else v1)}
+            heat_sources[idx] = {**heat_sources[idx], attr: ((v1, v2-player_loc[1], v3) if v3 is not None else v1), "time": time()}
         except KeyError:
-            heat_sources[idx] = {attr: ((v1, v2-player_loc[1], v3) if v3 is not None else v1)}
-        # TODO
-        # delete heat source when their num decreases
+            heat_sources[idx] = {attr: ((v1, v2-player_loc[1], v3) if v3 is not None else v1), "time": time()}
     else:
         ValueError(f"{key} is not defined.")
 
@@ -79,6 +70,10 @@ def update_values(key, v1, v2=None, v3=None):
         return 
     else:
         _interval = 0
+        # delete unused sources considering by last updated time
+        curr_time = time()
+        heat_sources = {k: v for k, v in heat_sources.items() if (curr_time - v["time"] < 2)}
+
         intensities = compute_intensity(heat_sources)
         asyncio.run(out(intensities))
 
@@ -94,9 +89,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     dispatcher = Dispatcher()
-    # dispatcher.map("/*", print)
-    #   dispatcher.map("/volume", print_volume_handler, "Volume")
-    #   dispatcher.map("/logvolume", print_compute_handler, "Log volume", math.log)
     dispatcher.map("/*", update_values)
 
     server = osc_server.ThreadingOSCUDPServer(

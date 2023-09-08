@@ -12,6 +12,7 @@ _interval = 0
 player_loc = [0, 0, 0]
 player_rotY = 0
 heat_sources = {}
+light_on = False
 
 def rotation_2d(x, y, theta):
     return x*math.cos(theta)-y*math.sin(theta), x*math.sin(theta)+y*math.cos(theta)
@@ -22,7 +23,7 @@ def invert_rot_y(val):
     return -val
 
 def update_values(key, v1, v2=None, v3=None):
-    global _interval, player_loc, player_rotY, heat_sources
+    global _interval, player_loc, player_rotY, heat_sources, light_on
 
     ### debug ###
     # if _interval < 10:
@@ -35,10 +36,16 @@ def update_values(key, v1, v2=None, v3=None):
 
     if key.startswith("/isLightsOn"):
         if not v1:
+            # print("Light Off")
+            light_on = False
             for heat_source in heat_sources.values():
                 heat_source["intensity"] = .0
             intensities = compute_intensity(heat_sources)
             asyncio.run(out(intensities))
+            return
+        else:
+            light_on = True
+            # print("Light ON")
 
     if key.startswith("/player"):
         _, _, transform_elm = key.split("/")
@@ -65,20 +72,20 @@ def update_values(key, v1, v2=None, v3=None):
         ValueError(f"{key} is not defined.")
 
 
-    if _interval < 501:
+    if _interval < 3:
         _interval += 1
         return 
     else:
+        if not light_on:
+            return
         _interval = 0
         # delete unused sources considering by last updated time
         curr_time = time()
-        heat_sources = {k: v for k, v in heat_sources.items() if (curr_time - v["time"] < 2)}
+        heat_sources = {k: v for k, v in heat_sources.items() if (curr_time - v["time"] < .3)}
 
         intensities = compute_intensity(heat_sources)
+        # print(intensities)
         asyncio.run(out(intensities))
-
-        # print(heat_sources[0]["intensity"])
-        print(heat_sources[0]["loc"])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

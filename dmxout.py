@@ -1,4 +1,5 @@
 from pyartnet import ArtNetNode
+from config import config
 
 async def out(intensities):
     # Run this code in your async function
@@ -11,7 +12,7 @@ async def out(intensities):
     # Add a channel to the universe which consists of 3 values
     # Default size of a value is 8Bit (0..255) so this would fill
     # the DMX values 1..3 of the universe
-    channel = universe.add_channel(start=1, width=26)#len(config["lights"]))
+    channel = universe.add_channel(start=1, width=len(config["lights"]))
 
     channel.set_fade(intensities, 0)
     # channel.set_values(intensities)

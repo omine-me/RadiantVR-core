@@ -34,7 +34,7 @@ def distance(vec1, vec2):
     return math.sqrt((vec1[0]-vec2[0])**2 + (vec1[1]-vec2[1])**2 + (vec1[2]-vec2[2])**2)
 
 
-def compute_intensity(heat_sources):
+def compute_intensity(heat_sources, _scene_name):
     # player is at (0,0,0)
     # each heat source has its location(m), intensity(照度?), radius(m)
 

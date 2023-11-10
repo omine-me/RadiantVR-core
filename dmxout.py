@@ -1,10 +1,12 @@
 from pyartnet import ArtNetNode
 from config import config
+from pyartnet.output_correction import quadratic
+# import asyncio
 
 async def out(intensities):
     # Run this code in your async function
     node = ArtNetNode('127.0.0.1', 6454,start_refresh_task=False)
-    # node = ArtNetNode('192.168.11.51', 6454)
+    # node = ArtNetNode('192.168.1.13', 6454 ,start_refresh_task=False)
 
     # Create universe 0
     universe = node.add_universe(0)
@@ -14,12 +16,16 @@ async def out(intensities):
     # the DMX values 1..3 of the universe
     channel = universe.add_channel(start=1, width=len(config["lights"]))
 
+    # 二乗することでワット数を減少する
+    # channel._correction_current = quadratic
+    
     channel.set_fade(intensities, 0)
     # channel.set_values(intensities)
-    # channel.set_fade([randint(0,255) for _ in range(26)], 50)
+
+    # print(intensities)
 
     # this can be used to wait till the fade is complete
     await channel
 
-# for _ in range(50):
-#     asyncio.run(out(None))
+# for _ in range(3):
+#     asyncio.run(out([0]*len(config["lights"])))

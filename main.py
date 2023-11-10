@@ -33,7 +33,8 @@ def update_values(key, v1, v2=None, v3=None):
     # else:
     #     _interval = 0
     ###       ###
-    # print(key, v1,v2,v3)
+    # print(key)
+    
 
     if key.startswith("/isLightsOn"):
         if not v1:
@@ -58,20 +59,19 @@ def update_values(key, v1, v2=None, v3=None):
     elif key.startswith("/heatsource"):
         _, _, idx, attr = key.split("/")
         idx = int(idx)
+        # print(idx, attr, v1)
         
         if v3 is not None: # when loc
             v1, v3 = rotation_2d(invert_axis_x(v1-player_loc[0]), v3-player_loc[2], invert_rot_y(player_rotY))
             # v1 = invert_axis_x(v1-player_loc[0])
             # v3 = v3-player_loc[2]
         try:
-            # if attr == "loc" and idx == 0:
-            #     print(v2, player_loc[1])
             heat_sources[idx] = {**heat_sources[idx], attr: ((v1, v2-player_loc[1], v3) if v3 is not None else v1), "time": time()}
         except KeyError:
             heat_sources[idx] = {attr: ((v1, v2-player_loc[1], v3) if v3 is not None else v1), "time": time()}
+        # print(heat_sources)
     elif key.startswith("/sceneName"):
-        _, _, _scene_name = key.split("/")
-        scene_name = _scene_name
+        scene_name = v1
     else:
         ValueError(f"{key} is not defined.")
 
@@ -86,7 +86,7 @@ def update_values(key, v1, v2=None, v3=None):
         # delete unused sources considering by last updated time
         curr_time = time()
         heat_sources = {k: v for k, v in heat_sources.items() if (curr_time - v["time"] < .3)}
-
+        
         intensities = compute_intensity(heat_sources, scene_name)
         # print(intensities)
         asyncio.run(out(intensities))

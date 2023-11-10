@@ -14,6 +14,10 @@ player_rotY = 0
 heat_sources = {}
 light_on = False
 scene_name = ""
+isSteamBigin = False
+isInSteam = False
+SteamMaxCount = 500
+currentSteamCount =0
 
 def rotation_2d(x, y, theta):
     return x*math.cos(theta)-y*math.sin(theta), x*math.sin(theta)+y*math.cos(theta)
@@ -24,7 +28,7 @@ def invert_rot_y(val):
     return -val
 
 def update_values(key, v1, v2=None, v3=None):
-    global _interval, player_loc, player_rotY, heat_sources, light_on, scene_name
+    global _interval, player_loc, player_rotY, heat_sources, light_on, scene_name, isSteamBigin, isInSteam, SteamMaxCount, currentSteamCount
 
     ### debug ###
     # if _interval < 10:
@@ -42,7 +46,7 @@ def update_values(key, v1, v2=None, v3=None):
             light_on = False
             for heat_source in heat_sources.values():
                 heat_source["intensity"] = .0
-            intensities = compute_intensity(heat_sources, scene_name)
+            intensities = compute_intensity(heat_sources, scene_name, player_loc[2], isInSteam)
             asyncio.run(out(intensities))
             return
         else:
@@ -53,7 +57,7 @@ def update_values(key, v1, v2=None, v3=None):
         _, _, transform_elm = key.split("/")
         if transform_elm == "loc":
             assert v3 is not None
-            player_loc = [v1, v2, v3]
+            player_loc = [v1, v2+.5, v3]
         elif transform_elm == "rotY":
             player_rotY = v1
     elif key.startswith("/heatsource"):
@@ -72,8 +76,17 @@ def update_values(key, v1, v2=None, v3=None):
         # print(heat_sources)
     elif key.startswith("/sceneName"):
         scene_name = v1
+    elif key.startswith("/isSteamBigin"):
+        if not isInSteam:
+            isInSteam = True
     else:
         ValueError(f"{key} is not defined.")
+
+    if isInSteam:
+        currentSteamCount += 1
+        if currentSteamCount > SteamMaxCount:
+            isInSteam = False
+            currentSteamCount =0
 
 
     if _interval < 3:
@@ -87,7 +100,7 @@ def update_values(key, v1, v2=None, v3=None):
         curr_time = time()
         heat_sources = {k: v for k, v in heat_sources.items() if (curr_time - v["time"] < .3)}
         
-        intensities = compute_intensity(heat_sources, scene_name)
+        intensities = compute_intensity(heat_sources, scene_name, player_loc[2], isInSteam)
         # print(intensities)
         asyncio.run(out(intensities))
 

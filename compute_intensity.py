@@ -37,7 +37,7 @@ def adjust_watt(intensities):
         watt_sum += linear_value
         # watt_sum += 255.*((linear_value/255.)**(1/gamma))
         # watt_sum += light["watt"] * math.sin(linear_value / 255. * math.pi/2)
-    
+    # print(int(watt_sum))
     if watt_sum <= config["max_watt"]:
         return intensities
     else:
@@ -67,6 +67,7 @@ def adjust_watt(intensities):
             print("OVER CAPACITY EVEN AFTER ADJUSTING!!!")
         #############
 
+
         return intensities
 
 
@@ -74,7 +75,7 @@ def distance(vec1, vec2):
     return math.sqrt((vec1[0]-vec2[0])**2 + (vec1[1]-vec2[1])**2 + (vec1[2]-vec2[2])**2)
 
 
-def compute_intensity(heat_sources, scene_name, player_loc_y, isInSteam):
+def compute_intensity(heat_sources, scene_name, player_loc_y, isInSteam, isInMagma):
     # player is at (0,0,0)
     # each heat source has its location(m), intensity(照度?), radius(m)
 
@@ -85,17 +86,46 @@ def compute_intensity(heat_sources, scene_name, player_loc_y, isInSteam):
     if scene_name == "sauna":
         if player_loc_y > -5.5:
             if isInSteam:
-                return [152,56,38,0,148,0,0,113,0,150,0,100,0,170,0,0,170,70,55,0,188,75,0]
+                return [152,56,38,0,148,0,0,113,0,150,0,100,0,170,0,0,170,70,55,0,188,0,75,0]
             else:
-                return [102, 0,0,0,100,0,0,107,0,107,0,107,0,110,0,0,110,0,0,0,105,0,0]
+                return [102, 0,0,0,\
+                        100,0,0,\
+                        107,0,\
+                        107,0,\
+                        107,0,\
+                        110,0,0,\
+                        110,0,0,0,\
+                        105,0,0,0]
+
         else:
             return [0]*len(config["lights"])
-            
-
+    
     if scene_name == "cave":
+        if isInMagma:
+            return [130,56,10,0,\
+                    130,0,0,\
+                    113,0,\
+                    130,0,\
+                    100,0,\
+                    140,0,0,\
+                    130,50,5,0,\
+                    140,45,5,0]
         power = 3.7
     elif scene_name == "Introduction":
-        power = 4
+        power = 3
+    elif scene_name == "park":
+        power = 3#2.99
+        if heat_sources:
+            return [100, 0, 0, 0, \
+                    100, 0, 0, \
+                    100, 0, \
+                    100, 0, \
+                    100, 0, \
+                    100, 0, 0, \
+                    100, 0, 0, 0, \
+                    100, 0, 0, 0]
+        else:
+            return [0]*len(config["lights"])
     else:
         power = 3
 
@@ -112,7 +142,12 @@ def compute_intensity(heat_sources, scene_name, player_loc_y, isInSteam):
             out_intensity += ((heat["intensity"]*dot*radius) / (distance(heat["loc"], (0,0,0))**power)) * (light["loc"][1]/1.25 if scene_name=="park" else 1)
             # print(out_intensity)
 
-        out_intensity *= 40#30000
+        if scene_name == "cave":
+            out_intensity *= 10
+        elif scene_name == "Introduction":
+            out_intensity *= 25
+        else:
+            out_intensity *= 40#30000
 
         if out_intensity < 0: out_intensity = 0
         elif 255 < out_intensity: out_intensity = 255
@@ -122,5 +157,7 @@ def compute_intensity(heat_sources, scene_name, player_loc_y, isInSteam):
     # assert len(config["lights"]) == len(outputs)
 
     outputs = adjust_watt(outputs)
+
+    # print(outputs)
 
     return outputs

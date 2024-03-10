@@ -4,7 +4,7 @@ import time
 import argparse
 import asyncio
 
-from dmxout import out
+from utils.dmxout import out
 from config import config
 
 # column index
@@ -16,7 +16,8 @@ Intensity = 3
 BULB_COUNT = len(config["lights"])
 MAX_INTENSITY = 255
 
-def main(file_path):    
+
+def main(file_path):
     with open(file_path, "r") as f:
         # column names
         header = next(csv.reader(f))

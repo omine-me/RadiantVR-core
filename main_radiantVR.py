@@ -5,8 +5,8 @@ from time import time
 
 from pythonosc.dispatcher import Dispatcher
 from pythonosc import osc_server
-from dmxout import out
-from compute_intensity import compute_intensity
+from utils.dmxout import out
+from utils.compute_intensity import compute_intensity
 
 _interval = 0
 player_loc = [0, 0, 0]
@@ -109,9 +109,12 @@ def update_values(key, v1, v2=None, v3=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ip",
-        # default="127.0.0.1", help="The ip to listen on")
-        default="192.168.1.13", help="The ip to listen on")
+    # parser.add_argument("--ip",
+    #     # default="127.0.0.1", help="The ip to listen on")
+    #     default="192.168.1.13", help="The ip to listen on")
+    import socket
+    ip = socket.gethostbyname_ex(socket.gethostname())[-1][-1]
+
     parser.add_argument("--port",
         type=int, default=8080, help="The port to listen on")
     args = parser.parse_args()
@@ -120,6 +123,6 @@ if __name__ == "__main__":
     dispatcher.map("/*", update_values)
 
     server = osc_server.ThreadingOSCUDPServer(
-        (args.ip, args.port), dispatcher)
+        (ip, args.port), dispatcher)
     print("Serving on {}".format(server.server_address))
     server.serve_forever()

@@ -109,16 +109,23 @@ def update_values(key, v1, v2=None, v3=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    # parser.add_argument("--ip",
-    #     # default="127.0.0.1", help="The ip to listen on")
-    #     default="192.168.1.13", help="The ip to listen on")
-    import socket
-    ip = socket.gethostbyname_ex(socket.gethostname())[-1][-1]
+    parser.add_argument("--ip",
+        # default="127.0.0.1", help="The ip to listen on")
+        default="", help="The ip to listen on")
 
     parser.add_argument("--port",
         type=int, default=8080, help="The port to listen on")
     args = parser.parse_args()
 
+    import netifaces as ni
+    try:
+        ip = ni.ifaddresses('en1')[ni.AF_INET][0]['addr']
+    except:
+        if not args.ip:
+            raise ValueError("Specify IP Addtrss by adding your IP like this 'python main_radiantVR.py --ip 192.169.1.13'")
+        ip = args.ip
+
+    
     dispatcher = Dispatcher()
     dispatcher.map("/*", update_values)
 

@@ -1,4 +1,5 @@
 ipget==0.0.3
+netifaces==0.11.0
 numpy==1.26.4
 pyartnet==1.0.1
 python-osc==1.8.1

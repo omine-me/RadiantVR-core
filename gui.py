@@ -5,13 +5,16 @@ from tkinter import ttk
 from tkinter import filedialog
 import tkinter as tk
 
+from main_from_file import main
+
 file_header = []
 file_data = []
+file_name = ""
 table_from_file = None
 table_interactive = None
 
 def open_file(root, table):
-    global file_header, file_data
+    global file_header, file_data, file_name
     file_name = filedialog.askopenfilename(initialdir='~/')
     if file_name:
         print(file_name)
@@ -20,7 +23,7 @@ def open_file(root, table):
             # column names
             file_header = next(csv.reader(f))
             file_data = list(csv.reader(f))
-            print(file_data)
+            # print(file_data)
             try:
                 table.destroy()
             except:
@@ -32,8 +35,9 @@ def open_file(root, table):
                 selected_filename.set(f"INVALID FILE: {file_name}")
 
 def start():
-    print("start")
-    pass
+    # print("start")
+    # pass
+    main(file_name)
 
 def init():
     root = tk.Tk()

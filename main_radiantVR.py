@@ -121,6 +121,17 @@ if __name__ == "__main__":
     try:
         ip = ni.ifaddresses('en1')[ni.AF_INET][0]['addr']
     except:
+        ip = None
+    if ip is None:
+        for iface in ni.interfaces():
+            if ni.AF_INET in ni.ifaddresses(iface):
+                ip = ni.ifaddresses(iface)[ni.AF_INET][0]['addr']
+                if ip != "127.0.0.1":
+                    break
+                else:
+                    ip =None
+    
+    if ip is None:
         if not args.ip:
             raise ValueError("Specify IP Addtrss by adding your IP like this 'python main_radiantVR.py --ip 192.169.1.13'")
         ip = args.ip

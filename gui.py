@@ -19,8 +19,10 @@ file_name = ""
 table_from_file = None
 table_interactive = None
 
+excel_warnings = ["DO NOT CLOSE MANUALLY. Close automatically after saving. NOT 'Save as' but normal 'Save' (Shortcut: Ctrl+S). ---- DO NOT USE BELOW ----"]
+
 def open_file(root, table):
-    global file_header, from_file_data, file_name
+    global file_header, from_file_data, file_name, table_from_file
     file_name = filedialog.askopenfilename(initialdir='~/')
     if file_name:
         print(file_name)
@@ -31,11 +33,11 @@ def open_file(root, table):
             from_file_data = list(csv.reader(f))
             # print(file_data)
             try:
-                table.destroy()
+                table_from_file.destroy()
             except:
                 pass
             try:
-                table = generate_table(root, from_file_data)
+                table_from_file = generate_table(root, from_file_data)
             except IndexError as e:
                 print(e)
                 selected_filename.set(f"INVALID FILE: {file_name}")
@@ -51,15 +53,15 @@ def close_specific_excel(excel_file_path):
                     if file.path.lower() == excel_file_path.lower():
                         # Terminate the process
                         os.kill(process.info['pid'], 9)
-                        print(f"Closed Excel window for file: {excel_file_path}")
+                        # print(f"Closed Excel window for file: {excel_file_path}")
                         return
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 pass
 
     print(f"No Excel window found for file: {excel_file_path}")
 
-def oepn_excel(root, table):
-    global interactive_file_data
+def open_excel(root, table):
+    global table_from_file, interactive_file_data
     # selected_filename_interactive.set(f'Input data in Excel and save it (NO "save as")')
     tmp_file = "./_tmp_interactive.csv"
     p = subprocess.Popen(f"start excel /x {tmp_file}", shell=True)
@@ -69,18 +71,18 @@ def oepn_excel(root, table):
         modified_dt2 = get_modified_time(tmp_file)
         if modified_dt1 != modified_dt2:
             modified_dt1 = modified_dt2
-            print(f'{tmp_file} is modified at {modified_dt2.strftime("%Y/%m/%d %H:%M:%S")}')
+            # print(f'{tmp_file} is modified at {modified_dt2.strftime("%Y/%m/%d %H:%M:%S")}')
             close_specific_excel(tmp_file)
             
             with open(tmp_file, "r") as f:
-                file_header = next(csv.reader(f))
+                # file_header = next(csv.reader(f))
                 interactive_file_data = list(csv.reader(f))
                 try:
-                    table.destroy()
-                except:
+                    table_from_file.destroy()
+                except Exception as e:
                     pass
                 try:
-                    table = generate_table(root, interactive_file_data)
+                    table_from_file = generate_interactive_table(root, interactive_file_data)
                     selected_filename_interactive.set(f"Successfully loaded data from Excel")
                 except IndexError as e:
                     print(e)
@@ -98,6 +100,49 @@ def start():
     # pass
     main(file_name)
 
+def start_interactive():
+    global interactive_file_data
+    assert len(interactive_file_data) == 4, "interacitive data seems wrong"
+    with open("_tmp_interacitive_final.csv", "w") as f:
+        f.write("Trial No,Bulb No,Start(ms),Duration(ms),Intensity%\n")
+        bulb = interactive_file_data[0][1:]
+        start = interactive_file_data[1][1:]
+        duration = interactive_file_data[2][1:]
+        intensity = interactive_file_data[3][1:]
+
+        bulb_s = ""
+        for b in bulb:
+            bulb_s += b + ","
+        bulb_s = bulb_s[:-1]
+        if "," in bulb_s:
+            bulb_s = '"' +  bulb_s + '"'
+            
+        start_s = ""
+        for s in start:
+            start_s += s + ","
+        start_s = start_s[:-1]
+        if "," in start_s:
+            start_s = '"' +  start_s + '"'
+
+        duration_s = ""
+        for d in duration:
+            duration_s += d + ","
+        duration_s = duration_s[:-1]
+        if "," in duration_s:
+            duration_s = '"' +  duration_s + '"'
+
+        intensity_s = ""
+        for i in intensity:
+            intensity_s += i + ","
+        intensity_s = intensity_s[:-1]
+        if "," in intensity_s:
+            intensity_s = '"' +  intensity_s + '"'
+                
+        f.write(f'1,{bulb_s},{start_s},{duration_s},{intensity_s}\n')
+
+    main("_tmp_interacitive_final.csv")
+    # main()
+
 def init():
     if os.path.exists("_tmp_interactive.csv"):
         os.remove("_tmp_interactive.csv")
@@ -106,6 +151,8 @@ def init():
         f.write("Onset(ms)\n")
         f.write("Duration(ms)\n")
         f.write("Intensity\n")
+        for warn in excel_warnings:
+            f.write(warn+"\n")
 
     root = tk.Tk()
     root.title('Lights Controler')
@@ -145,10 +192,39 @@ def layout_for_interactive(root):
     # Open File
     file_picker_button = tk.Button(
         frame_file_picker, text='Edit in Excel', width=15,
-        command=partial(oepn_excel, frame_for_interactive, table_interactive))
+        command=partial(open_excel, frame_for_interactive, table_interactive))
     file_picker_button.pack(side=tk.LEFT)
     selected_file_label_interactive = tk.Label(frame_file_picker, textvariable=selected_filename_interactive)
     selected_file_label_interactive.pack()
+
+def generate_interactive_table(root, file_data):
+    frame_table = tk.Frame(root)
+    frame_table.pack(anchor=tk.W)
+    tree = ttk.Treeview(frame_table, columns=["#"+str(i) for i in range(len(file_data[0])+1)], show="tree")
+    for row in file_data:
+        if row[0] in excel_warnings:
+            file_data.remove(row)
+
+    tree.delete(*tree.get_children())  # Clear existing data in the tree
+    if True:#file_data:
+        # # 列の設定
+        tree.column('#0',width=0, stretch='no')
+        for i in range(1, len(file_data[0])):
+            tree.column("#"+str(i), anchor='center', width=80)
+        # レコードの追加
+        # print(file_data)
+        for row in file_data:
+            # for row in column:
+            #     print(row)
+            tree.insert(parent='', index='end', values=row)
+    # ウィジェットの配置
+    tree.pack(side=tk.LEFT, anchor=tk.W, pady=10)
+    start_button = tk.Button(
+        frame_table, text='Start', width=15,
+        command=start_interactive)
+    start_button.pack(side=tk.LEFT, anchor=tk.S)
+
+    return frame_table
 
 def generate_table(root, file_data):
     # # Treeviewの生成
@@ -183,9 +259,9 @@ def generate_table(root, file_data):
 
     return frame_table
 
-def on_closing():
-    if messagebox.askokcancel("Quit", "Do you want to quit?"):
-        root.destroy()
+# def on_closing():
+#     if messagebox.askokcancel("Quit", "Do you want to quit?"):
+#         root.destroy()
 
 if __name__ == "__main__":
     root = init()
@@ -198,5 +274,5 @@ if __name__ == "__main__":
 
     layout_for_interactive(root)
 
-    root.protocol("WM_DELETE_WINDOW", on_closing)
+    # root.protocol("WM_DELETE_WINDOW", on_closing)
     root.mainloop()
